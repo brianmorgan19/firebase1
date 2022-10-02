@@ -1,9 +1,15 @@
 package com.example.firebase
 
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Toast
+import androidx.core.net.toUri
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
+import com.google.firebase.auth.ktx.userProfileChangeRequest
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +22,8 @@ class MainActivity : AppCompatActivity() {
 
     lateinit var auth: FirebaseAuth
 
+    lateinit var capturedUri:Uri
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -23,6 +31,14 @@ class MainActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         reg_btn.setOnClickListener {
             registerUser()
+        }
+
+        login_btn.setOnClickListener {
+            loggedUser()
+        }
+
+        btn_update.setOnClickListener {
+            updateProfile()
         }
     }
 
@@ -76,11 +92,39 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun updateProfile(){
+        auth.currentUser?.let {
+        val name = edTextUpdate.text.toString()
+        val uri = Uri.parse("android.resource://$packageName/${R.drawable.ic_background_background}")
+        val profileBuilder = UserProfileChangeRequest.Builder()
+            .setDisplayName(name)
+            .setPhotoUri(uri)
+            .build()
+
+        CoroutineScope(Dispatchers.IO).launch{
+            try {
+                it.updateProfile(profileBuilder)
+                withContext(Dispatchers.Main){
+                    loggedUser()
+                }
+            }
+            catch (e:Exception){
+                withContext(Dispatchers.Main){
+                    Toast.makeText(this@MainActivity, e.message, Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+        }
+    }
+
     private fun loggedUser() {
-        if(auth.currentUser == null){
+        val user = auth.currentUser
+        if(user == null){
             loggedText.text = "You are not logged"
         }
         else{
+            edTextUpdate.setText(user.displayName)
+            ivPhoto.setImageURI(user.photoUrl)
             loggedText.text = "You are logged"
         }
     }
